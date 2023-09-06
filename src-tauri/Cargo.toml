@@ -17,7 +17,7 @@ tauri-build = { version = "1.4.0", features = [] }
 [dependencies]
 ron = "0.8"
 serde = { version = "1.0", features = ["derive"] }
-tauri = { version = "1.4.0", features = [] }
+tauri = { version = "1.4.0", features = ["system-tray"] }
 sysinfo = "0.29.9"
 winapi = { version = "0.3.9", features = ["winuser"] }
 directories = "5.0.1"

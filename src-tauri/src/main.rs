@@ -3,12 +3,20 @@
 use app::*;
 use app::handlers::*;
 
-use tauri::Manager;
+use tauri::{Manager, SystemTray, SystemTrayMenu, CustomMenuItem};
 
 fn main() {
+    let quit = CustomMenuItem::new("quit".to_string(), "Quit");
+    let tray_menu = SystemTrayMenu::new()
+        .add_item(quit);
+    
+    let tray = SystemTray::new()
+        .with_menu(tray_menu);
+
     let state = AppState::new(load());
 
     tauri::Builder::default()
+        .system_tray(tray)
         .invoke_handler(tauri::generate_handler![remove_project])
         .manage(state)
         .setup(|app| {
