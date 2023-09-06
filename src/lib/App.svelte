@@ -1,30 +1,20 @@
 <script lang="ts">
     import { listen } from '@tauri-apps/api/event'
     import type { Event } from '@tauri-apps/api/event'
-	import Project from './Project.svelte';
+	import ProjectTimer from './ProjectTimer.svelte';
 
 	import { Loader, Center, Divider } from '@svelteuidev/core';
 	import { format_time } from './utils';
-
-    type Project = {
-        name: string
-        open: boolean
-        time: {
-            secs: number
-            nanos: number
-        }
-    }
-
-    type UpdatePayload = {
-        status: string
-        projects: Project[]
-    }
-
+	import type { UpdatePayload, Project } from './types';
+    
+    let project_names: string[] = []
     let projects: Project[] = []
     let loaded = false
 
     listen('update', (event: Event<UpdatePayload>) => {
-        projects = event.payload.projects.toSorted((a, b) => {
+        project_names = Array.from(event.payload.projects.keys())
+        projects = Array.from(event.payload.projects.values())
+        projects.sort((a, b) => {
             if (a.open && !b.open) return -1
             if (!a.open && b.open) return 1
             return b.time.secs - a.time.secs
@@ -44,8 +34,8 @@
     {/if}
     
     <div class="project-list">
-        {#each projects as project}
-        <Project name={project.name} secs={project.time.secs} open={project.open} />
+        {#each projects as project, i}
+            <ProjectTimer name={project_names[i]} project={project} />
         {/each}
     </div>
 
