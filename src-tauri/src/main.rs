@@ -4,11 +4,14 @@ use app::*;
 use app::handlers::*;
 use app::persistent::*;
 
-use tauri::{Manager, SystemTray, SystemTrayMenu, CustomMenuItem};
+use tauri::RunEvent;
+use tauri::{SystemTray, SystemTrayMenu, CustomMenuItem};
 
 fn main() {
-    let quit = CustomMenuItem::new("quit".to_string(), "Quit");
+    let quit = CustomMenuItem::new("quit", "Quit");
+    let open = CustomMenuItem::new("open", "Open");
     let tray_menu = SystemTrayMenu::new()
+        .add_item(open)
         .add_item(quit);
     
     let tray = SystemTray::new()
@@ -18,13 +21,19 @@ fn main() {
 
     tauri::Builder::default()
         .system_tray(tray)
+        .on_system_tray_event(handle_system_tray_event)
         .invoke_handler(tauri::generate_handler![remove_project])
         .manage(state)
         .setup(|app| {
-            let main_window = app.get_window("main").unwrap();
-            update_loop(app.handle(), main_window);
+            update_loop(app.handle());
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|_app, event| match event {
+            RunEvent::ExitRequested { api, .. } => {
+                api.prevent_exit();
+            }
+            _ => { }
+        });
 }

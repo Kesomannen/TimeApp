@@ -8,5 +8,6 @@ export type Project = {
 }
 
 export type UpdatePayload = {
-    projects: Map<string, Project>
+    projects: Project[]
+    project_names: string[]
 }

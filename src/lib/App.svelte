@@ -12,8 +12,8 @@
     let loaded = false
 
     listen('update', (event: Event<UpdatePayload>) => {
-        project_names = Array.from(event.payload.projects.keys())
-        projects = Array.from(event.payload.projects.values())
+        project_names = event.payload.project_names
+        projects = event.payload.projects
         
         projects.sort((a, b) => {
             if (a.open && !b.open) return -1

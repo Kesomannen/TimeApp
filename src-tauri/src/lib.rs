@@ -1,6 +1,6 @@
-use std::{thread, time::Duration, sync::Mutex, collections::HashMap};
+use std::{thread, time::Duration, sync::Mutex, collections::HashMap, process};
 
-use tauri::{Manager, AppHandle, SystemTrayEvent};
+use tauri::{Manager, AppHandle, SystemTrayEvent, WindowUrl, WindowBuilder};
 use sysinfo::{ProcessExt, System, SystemExt, PidExt};
 use winapi::um::winuser::*;
 
@@ -31,7 +31,7 @@ impl AppState {
     }
 }
 
-pub fn update_loop(app: tauri::AppHandle, window: tauri::Window) {
+pub fn update_loop(app: tauri::AppHandle) {
     let mut system = System::new_all();
     thread::spawn(move || loop {
         thread::sleep(UPDATE_INTERVAL);
@@ -72,7 +72,7 @@ pub fn update_loop(app: tauri::AppHandle, window: tauri::Window) {
             }
         }
 
-        if let Err(err) = send_update(&projects, &window) {
+        if let Err(err) = send_update(&projects, &app) {
             eprintln!("Error sending update: {}", err);
         }
     });
@@ -80,28 +80,47 @@ pub fn update_loop(app: tauri::AppHandle, window: tauri::Window) {
 
 #[derive(serde::Serialize, Clone, Default)]
 struct UpdatePayload {
-    projects: HashMap<String, Project>,
+    project_names: Vec<String>,
+    projects: Vec<Project>
 }
 
-fn send_update(projects: &HashMap<String, Project>, window: &tauri::Window) -> tauri::Result<()> {
+fn send_update(projects: &HashMap<String, Project>, app: &AppHandle) -> tauri::Result<()> {
     let payload = UpdatePayload {
-        projects: projects.clone(),
+        project_names: projects.keys().cloned().collect(),
+        projects: projects.values().cloned().collect(),
     };
 
-    window.emit("update", payload)?;
+    app.emit_all("update", payload)?;
     save_projects(projects);
 
     Ok(())
 }
 
-pub fn handle_system_tray_event(_: &AppHandle, event: SystemTrayEvent) {
+pub fn handle_system_tray_event(app_handle: &AppHandle, event: SystemTrayEvent) {
     match event {
-        SystemTrayEvent::MenuItemClick { .. } => todo!(),
-        SystemTrayEvent::LeftClick { .. } => todo!(),
-        SystemTrayEvent::RightClick { .. } => todo!(),
-        SystemTrayEvent::DoubleClick { .. } => todo!(),
-        _ => todo!(),
+        SystemTrayEvent::MenuItemClick { id, .. } => {
+            match id.as_str() {
+                "open" => open_main_window(app_handle),
+                "quit" => process::exit(0),
+                _ => { }
+            }
+        },
+        SystemTrayEvent::LeftClick { .. } => {
+            open_main_window(app_handle);
+        },
+        SystemTrayEvent::RightClick { .. } => { },
+        SystemTrayEvent::DoubleClick { .. } => { },
+        _ => { },
     }
+}
+
+fn open_main_window(app_handle: &AppHandle) {
+    if app_handle.windows().iter().any(|(label, _)| label == "main") {
+        return;
+    }
+
+    let url = WindowUrl::App("index.html".into());
+    WindowBuilder::new(app_handle, "main", url).build().expect("Failed to open window");
 }
 
 fn get_process_windows(process_id: u32) -> Vec<String> {
