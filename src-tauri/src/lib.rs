@@ -1,11 +1,13 @@
-use std::{thread, time::Duration, sync::Mutex, collections::HashMap, fs, path::PathBuf};
+use std::{thread, time::Duration, sync::Mutex, collections::HashMap};
 
-use directories::ProjectDirs;
-use tauri::Manager;
+use tauri::{Manager, AppHandle, SystemTrayEvent};
 use sysinfo::{ProcessExt, System, SystemExt, PidExt};
 use winapi::um::winuser::*;
 
+use persistent::save_projects;
+
 pub mod handlers;
+pub mod persistent;
 
 const UPDATE_INTERVAL: Duration = Duration::from_secs(1);
 
@@ -34,14 +36,14 @@ struct UpdatePayload {
     projects: Vec<Project>,
 }
 
-pub fn update_loop(window: tauri::Window, handle: tauri::AppHandle) {
+pub fn update_loop(app: tauri::AppHandle) {
     let mut system = System::new_all();
     thread::spawn(move || loop {
         thread::sleep(UPDATE_INTERVAL);
 
         system.refresh_all();
 
-        let state = handle.state::<AppState>();
+        let state = app.state::<AppState>();
         let mut projects = state.projects.lock().unwrap();
 
         for project in projects.values_mut() {
@@ -67,44 +69,31 @@ pub fn update_loop(window: tauri::Window, handle: tauri::AppHandle) {
             }
         }
 
-        send_update(&projects, &window);
+        if let Err(err) = send_update(&projects, &app) {
+            println!("Failed to send update: {}", err);
+        }
     });
 }
 
-fn send_update(projects: &HashMap<String, Project>, window: &tauri::Window) {
+fn send_update(projects: &HashMap<String, Project>, app: &AppHandle) -> Result<(), tauri::Error> {
     let payload = UpdatePayload {
         projects: projects.values().cloned().collect(),
     };
 
-    window.emit("update", payload).unwrap();
-    save(projects);
+    app.emit_all("update", payload)?;
+    save_projects(projects);
+
+    Ok(())
 }
 
-pub fn load() -> HashMap<String, Project> {
-    let path = get_data_path();
-
-    if !path.exists() {
-        return HashMap::new();
+pub fn handle_system_tray_event(app: &AppHandle, event: SystemTrayEvent) {
+    match event {
+        SystemTrayEvent::MenuItemClick { .. } => todo!(),
+        SystemTrayEvent::LeftClick { .. } => todo!(),
+        SystemTrayEvent::RightClick { .. } => todo!(),
+        SystemTrayEvent::DoubleClick { .. } => todo!(),
+        _ => todo!(),
     }
-
-    let contents = fs::read_to_string(path).expect("Failed to read saved projects");
-    ron::from_str(&contents).expect("Failed to parse saved projects")
-}
-
-pub fn save(map: &HashMap<String, Project>) {
-    let path = get_data_path(); 
-
-    if !path.exists() {
-        fs::create_dir_all(path.parent().unwrap()).expect("Failed to create data directory");
-    }
-
-    let contents = ron::to_string(map).expect("Failed to serialize projects");
-    fs::write(path, contents).expect("Failed to save projects");
-}
-
-fn get_data_path() -> PathBuf {
-    let dirs = ProjectDirs::from("com", "Kesomannen", "Time App").unwrap();
-    dirs.data_dir().join("projects.ron")
 }
 
 fn get_process_windows(process_id: u32) -> Vec<String> {
