@@ -11,7 +11,7 @@ const UPDATE_INTERVAL: Duration = Duration::from_secs(1);
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct Project {
-    name: String,
+    display_name: String,
     time: Duration,
     open: bool,
 }
@@ -31,7 +31,7 @@ impl AppState {
 
 #[derive(serde::Serialize, Clone, Default)]
 struct UpdatePayload {
-    projects: Vec<Project>,
+    projects: HashMap<String, Project>,
 }
 
 pub fn update_loop(window: tauri::Window, handle: tauri::AppHandle) {
@@ -51,13 +51,21 @@ pub fn update_loop(window: tauri::Window, handle: tauri::AppHandle) {
         for process in system.processes_by_exact_name("Unity.exe") {
             let open_project_names = get_process_windows(process.pid().as_u32()).into_iter()
                 .filter(|title| title.contains("- Unity"))
-                .map(|title| title.split("-").next().unwrap().trim().to_string());
+                .map(|title| {
+                    let segments: Vec<&str> = title.split("-").collect();
+
+                    if segments.len() == 4 {
+                        return segments[0].to_string();
+                    }
+
+                    segments[..segments.len() - 3].join("-").to_string()
+                });
 
             for project_name in open_project_names {
                 let project = projects
                     .entry(project_name.clone())
                     .or_insert_with(|| Project { 
-                        name: project_name, 
+                        display_name: format_project_name(&project_name), 
                         time: Duration::from_secs(0),
                         open: true,
                     });
@@ -73,7 +81,7 @@ pub fn update_loop(window: tauri::Window, handle: tauri::AppHandle) {
 
 fn send_update(projects: &HashMap<String, Project>, window: &tauri::Window) {
     let payload = UpdatePayload {
-        projects: projects.values().cloned().collect(),
+        projects: projects.clone(),
     };
 
     window.emit("update", payload).unwrap();
@@ -126,4 +134,29 @@ fn get_process_windows(process_id: u32) -> Vec<String> {
     }
 
     windows
+}
+
+fn format_project_name(name: &str) -> String {
+    let mut formatted = String::new();
+    let mut chars = name.chars();
+    let mut last = ' ';
+
+    while let Some(mut c) = chars.next() {
+        if c.is_ascii_uppercase() && last.is_ascii_lowercase() {
+            formatted.push(' ');
+        }
+
+        if c == '-' || c == '_' {
+            c = ' ';
+        }
+
+        formatted.push(match last {
+            ' ' => c.to_ascii_uppercase(),
+            _ => c,
+        });
+
+        last = c;
+    }
+
+    formatted
 }
