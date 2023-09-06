@@ -12,8 +12,6 @@
     let loaded = false
 
     listen('update', (event: Event<UpdatePayload>) => {
-        loaded = true
-        
         project_names = Array.from(event.payload.projects.keys())
         projects = Array.from(event.payload.projects.values())
         
@@ -22,6 +20,8 @@
             if (!a.open && b.open) return 1
             return b.time.secs - a.time.secs
         })
+
+        loaded = true
     })
 
     $: total_time = projects.reduce((acc, project) => acc + project.time.secs, 0)
