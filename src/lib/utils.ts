@@ -9,17 +9,3 @@ export function format_time(total_secs: number) {
 
     return `${hours_str}:${minutes_str}:${secs_str}`;
 }
-
-export function* map<T>(iterable: Iterable<T>, fn: (item: T) => T) {
-    for (const item of iterable) {
-        yield fn(item);
-    }
-}
-
-export function* reduce<T>(iterable: Iterable<T>, fn: (acc: T, item: T) => T, initial: T) {
-    let acc = initial;
-    for (const item of iterable) {
-        acc = fn(acc, item);
-    }
-    return acc;
-}

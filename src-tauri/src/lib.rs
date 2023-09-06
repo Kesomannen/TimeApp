@@ -31,12 +31,7 @@ impl AppState {
     }
 }
 
-#[derive(serde::Serialize, Clone, Default)]
-struct UpdatePayload {
-    projects: HashMap<String, Project>,
-}
-
-pub fn update_loop(app: tauri::AppHandle) {
+pub fn update_loop(app: tauri::AppHandle, window: tauri::Window) {
     let mut system = System::new_all();
     thread::spawn(move || loop {
         thread::sleep(UPDATE_INTERVAL);
@@ -57,10 +52,10 @@ pub fn update_loop(app: tauri::AppHandle) {
                     let segments: Vec<&str> = title.split("-").collect();
 
                     if segments.len() == 4 {
-                        return segments[0].to_string();
+                        return segments[0].trim().to_string();
                     }
 
-                    segments[..segments.len() - 3].join("-").to_string()
+                    segments[..segments.len() - 3].join("-").trim().to_string()
                 });
 
             for project_name in open_project_names {
@@ -77,24 +72,29 @@ pub fn update_loop(app: tauri::AppHandle) {
             }
         }
 
-        if let Err(err) = send_update(&projects, &app) {
-            println!("Failed to send update: {}", err);
+        if let Err(err) = send_update(&projects, &window) {
+            eprintln!("Error sending update: {}", err);
         }
     });
 }
 
-fn send_update(projects: &HashMap<String, Project>, app: &AppHandle) -> Result<(), tauri::Error> {
+#[derive(serde::Serialize, Clone, Default)]
+struct UpdatePayload {
+    projects: HashMap<String, Project>,
+}
+
+fn send_update(projects: &HashMap<String, Project>, window: &tauri::Window) -> tauri::Result<()> {
     let payload = UpdatePayload {
         projects: projects.clone(),
     };
 
-    app.emit_all("update", payload)?;
+    window.emit("update", payload)?;
     save_projects(projects);
 
     Ok(())
 }
 
-pub fn handle_system_tray_event(app: &AppHandle, event: SystemTrayEvent) {
+pub fn handle_system_tray_event(_: &AppHandle, event: SystemTrayEvent) {
     match event {
         SystemTrayEvent::MenuItemClick { .. } => todo!(),
         SystemTrayEvent::LeftClick { .. } => todo!(),

@@ -8,6 +8,5 @@ export type Project = {
 }
 
 export type UpdatePayload = {
-    status: string
     projects: Map<string, Project>
 }
