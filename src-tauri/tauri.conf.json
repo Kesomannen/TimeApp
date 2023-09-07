@@ -6,7 +6,7 @@
     "distDir": "../build"
   },
   "package": {
-    "productName": "Time App",
+    "productName": "UnityDevTimer",
     "version": "0.1.0"
   },
   "tauri": {
@@ -19,7 +19,7 @@
     },
     "bundle": {
       "active": true,
-      "category": "DeveloperTool",
+      "category": "Utility",
       "copyright": "",
       "deb": {
         "depends": []
@@ -32,7 +32,7 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ],
-      "identifier": "com.tauri.dev",
+      "identifier": "com.Kesomannen.UnityDevTimer",
       "longDescription": "",
       "macOS": {
         "entitlements": null,
@@ -42,7 +42,7 @@
         "signingIdentity": null
       },
       "resources": [],
-      "shortDescription": "",
+      "shortDescription": "Tracks your Unity development time",
       "targets": "all",
       "windows": {
         "certificateThumbprint": null,
@@ -59,10 +59,15 @@
     "windows": [
       {
         "fullscreen": false,
-        "height": 600,
         "resizable": true,
-        "title": "Time App",
-        "width": 800
+        "title": "Unity Development Timer",
+        "height": 500,
+        "width": 500,
+        "minHeight": 200,
+        "minWidth": 400,
+        "maxHeight": 600,
+        "maxWidth": 800,
+        "maximizable": false
       }
     ]
   }

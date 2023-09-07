@@ -1,17 +1,17 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use app::*;
-use app::handlers::*;
-use app::persistent::*;
+use unity_dev_timer::*;
+use unity_dev_timer::handlers::*;
+use unity_dev_timer::persistent::*;
 
 use tauri::RunEvent;
 use tauri::{SystemTray, SystemTrayMenu, CustomMenuItem};
 
 fn main() {
+    let hide = CustomMenuItem::new("hide", "Hide");
     let quit = CustomMenuItem::new("quit", "Quit");
-    let open = CustomMenuItem::new("open", "Open");
     let tray_menu = SystemTrayMenu::new()
-        .add_item(open)
+        .add_item(hide)
         .add_item(quit);
     
     let tray = SystemTray::new()

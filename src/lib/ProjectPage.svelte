@@ -6,32 +6,33 @@
 	import { Loader, Center, Divider } from '@svelteuidev/core';
 	import { format_time } from './utils';
 	import type { UpdatePayload, Project } from './types';
+	import { onMount } from 'svelte';
     
     let project_names: string[] = []
     let projects: Project[] = []
     let loaded = false
 
-    listen('update', (event: Event<UpdatePayload>) => {
-        project_names = event.payload.project_names
-        projects = event.payload.projects
-        
-        projects.sort((a, b) => {
-            if (a.open && !b.open) return -1
-            if (!a.open && b.open) return 1
-            return b.time.secs - a.time.secs
-        })
+    onMount(() => {
+        listen('update', (event: Event<UpdatePayload>) => {
+            project_names = event.payload.project_names
+            projects = event.payload.projects
+            
+            projects.sort((a, b) => {
+                if (a.open && !b.open) return -1
+                if (!a.open && b.open) return 1
+                return b.time.secs - a.time.secs
+            })
 
-        loaded = true
-    })
+            loaded = true
+        });
+    });
 
     $: total_time = projects.reduce((acc, project) => acc + project.time.secs, 0)
 </script>
 
 {#if loaded}
-    <h1>Projects</h1>
-
     {#if projects.length === 0}
-        <strong>No projects yet, open one in Unity to get started!</strong>
+        No projects yet, open one in Unity to get started!
     {/if}
     
     <div class="project-list">
@@ -56,6 +57,10 @@
     }
 
     .total {
-        padding-top: 0.33rem;
+        font-size: 90%;
+    }
+
+    * {
+        margin: 0.5rem 0;
     }
 </style>

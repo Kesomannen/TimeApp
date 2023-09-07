@@ -10,6 +10,7 @@ pub mod handlers;
 pub mod persistent;
 
 const UPDATE_INTERVAL: Duration = Duration::from_secs(1);
+const PRODUCT_NAME: &str = "UnityDevTimer";
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct Project {
@@ -84,29 +85,34 @@ struct UpdatePayload {
     projects: Vec<Project>
 }
 
-fn send_update(projects: &HashMap<String, Project>, app_handle: &AppHandle) -> tauri::Result<()> {
+fn send_update(projects: &HashMap<String, Project>, app: &AppHandle) -> tauri::Result<()> {
     let payload = UpdatePayload {
         project_names: projects.keys().cloned().collect(),
         projects: projects.values().cloned().collect(),
     };
 
-    app_handle.emit_all("update", payload)?;
+    app.emit_all("update", payload)?;
     save_projects(projects);
 
     Ok(())
 }
 
-pub fn handle_system_tray_event(app_handle: &AppHandle, event: SystemTrayEvent) {
+pub fn handle_system_tray_event(app: &AppHandle, event: SystemTrayEvent) {
     match event {
         SystemTrayEvent::MenuItemClick { id, .. } => {
+            let item = app.tray_handle().get_item(&id);
             match id.as_str() {
-                "open" => open_main_window(app_handle),
+                "hide" => {
+                    if let Ok(open) = toggle_window(app) {
+                        item.set_title(if open { "Hide" } else { "Show" }).ok();
+                    }
+                },
                 "quit" => process::exit(0),
                 _ => { }
             }
         },
         SystemTrayEvent::LeftClick { .. } => {
-            open_main_window(app_handle);
+            toggle_window(app).ok();
         },
         SystemTrayEvent::RightClick { .. } => { },
         SystemTrayEvent::DoubleClick { .. } => { },
@@ -114,13 +120,19 @@ pub fn handle_system_tray_event(app_handle: &AppHandle, event: SystemTrayEvent) 
     }
 }
 
-fn open_main_window(app_handle: &AppHandle) {
-    if app_handle.windows().iter().any(|(label, _)| label == "main") {
-        return;
-    }
+fn toggle_window(app: &AppHandle) -> tauri::Result<bool> {
+    let window = app.get_window("main").unwrap_or_else(|| {
+        let url = WindowUrl::App("index.html".into());
+        WindowBuilder::new(app, "main", url).build().expect("Failed to open window")
+    });
 
-    let url = WindowUrl::App("index.html".into());
-    WindowBuilder::new(app_handle, "main", url).build().expect("Failed to open window");
+    if window.is_visible()? {
+        window.hide()?;
+        return Ok(false);
+    } else {
+        window.show()?;
+        return Ok(true)
+    }
 }
 
 fn get_process_windows(process_id: u32) -> Vec<String> {
