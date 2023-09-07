@@ -84,13 +84,13 @@ struct UpdatePayload {
     projects: Vec<Project>
 }
 
-fn send_update(projects: &HashMap<String, Project>, app: &AppHandle) -> tauri::Result<()> {
+fn send_update(projects: &HashMap<String, Project>, app_handle: &AppHandle) -> tauri::Result<()> {
     let payload = UpdatePayload {
         project_names: projects.keys().cloned().collect(),
         projects: projects.values().cloned().collect(),
     };
 
-    app.emit_all("update", payload)?;
+    app_handle.emit_all("update", payload)?;
     save_projects(projects);
 
     Ok(())

@@ -10,14 +10,16 @@
 
 <div class="container">
     {#if project.open}
-        <Text color="lime" weight="bold" size="">
+        <Text color="lime" weight="bold">
             OPEN
         </Text>
     {/if}
 
-    {project.display_name}
+    <Text>{project.display_name}</Text>
 
-    <strong>{format_time(project.time.secs)}</strong>
+    <Text weight="bold">
+        {format_time(project.time.secs)}
+    </Text>
 
     <Button variant="subtle" color="red" on:click={() => invoke('remove_project', { name: name })}>
         {project.open ? 'Reset' : 'Remove'}
