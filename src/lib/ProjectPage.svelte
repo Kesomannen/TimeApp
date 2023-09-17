@@ -8,26 +8,32 @@
 	import type { UpdatePayload, Project } from './types';
 	import { onMount } from 'svelte';
     
-    let project_names: string[] = []
-    let projects: Project[] = []
+    let projects: {name: string, project: Project}[] = []
     let loaded = false
 
     onMount(() => {
         listen('update', (event: Event<UpdatePayload>) => {
-            project_names = event.payload.project_names
-            projects = event.payload.projects
+            let payload = event.payload
+            projects = []
+
+            for (let i = 0; i < payload.project_names.length; i++) {
+                projects.push({
+                    name: payload.project_names[i],
+                    project: payload.projects[i]
+                })
+            }
             
             projects.sort((a, b) => {
-                if (a.open && !b.open) return -1
-                if (!a.open && b.open) return 1
-                return b.time.secs - a.time.secs
+                if (a.project.open && !b.project.open) return -1
+                if (!a.project.open && b.project.open) return 1
+                return b.project.time.secs - a.project.time.secs
             })
 
             loaded = true
         });
     });
 
-    $: total_time = projects.reduce((acc, project) => acc + project.time.secs, 0)
+    $: total_time = projects.reduce((acc, p) => acc + p.project.time.secs, 0)
 </script>
 
 {#if loaded}
@@ -35,15 +41,15 @@
         No projects yet, open one to get started!
     {/if}
     
-    <div class="project-list">
-        {#each projects as project, i}
-            <ProjectTimer name={project_names[i]} project={project} />
+    <div id="project-list">
+        {#each projects as { name, project }}
+            <ProjectTimer name={name} project={project} />
         {/each}
     </div>
 
     <Divider />
 
-    <div class="total">Total time spent developing: {format_time(total_time)}</div>
+    <div id="total">Total time spent developing: {format_time(total_time)}</div>
 {:else}
     <Center>
         <Loader size='xl' />
@@ -51,16 +57,9 @@
 {/if}
 
 <style>
-    .project-list {
+    #project-list {
         display: flex;
         flex-direction: column;
-    }
-
-    .total {
-        font-size: 1rem;
-    }
-
-    * {
-        margin: 0.5rem 0;
+        gap: 0.25rem;
     }
 </style>

@@ -1,7 +1,7 @@
 <script lang="ts">
     import { invoke } from '@tauri-apps/api/tauri';
     import { onMount } from 'svelte';
-    import { NativeSelect, Checkbox } from '@svelteuidev/core';
+    import { NativeSelect, Checkbox, Divider } from '@svelteuidev/core';
 
     type Engine = 'Unity' | 'Godot';
 
@@ -36,12 +36,16 @@
         />
     </div>
     <div class="setting">
-        <div class="label">Auto start</div>
+        <div class="label">Auto Start</div>
         <Checkbox bind:checked={autoStart} />
     </div>
 </div>
 
 <style>
+    .label {
+        font-weight: 500;
+    }
+
     #list {
         display: flex;
         flex-direction: column;

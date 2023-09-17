@@ -1,25 +1,25 @@
 use std::{collections::HashMap, sync::{Mutex, MutexGuard}};
 
-use crate::persistent::save_config;
+use crate::{persistent::save_config, PRODUCT_NAME};
 
 use auto_launch::AutoLaunch;
 use serde::{de::DeserializeOwned, Serialize};
 
-pub struct Config {
+pub struct Options {
     map: Mutex<HashMap<String, String>>,
-    auto_launch: AutoLaunch
+    auto_launch: AutoLaunch,
 }
 
-impl Config {
+impl Options {
     pub fn new(map: HashMap<String, String>) -> Self {
         let path = std::env::current_dir().unwrap();
         let name = path.file_name().unwrap().to_str().unwrap();
         let path = path.to_str().unwrap();
 
-        let auto = AutoLaunch::new(name, path, &[] as &[&str]);
+        let auto_launch = AutoLaunch::new(name, path, &[] as &[&str]);
 
         let config = Self {
-            auto_launch: auto,
+            auto_launch,
             map: Mutex::new(map),
         };
 

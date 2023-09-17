@@ -1,31 +1,34 @@
 <script lang="ts">
-	import { Button, Text } from '@svelteuidev/core';
+	import { Button, ActionIcon } from '@svelteuidev/core';
     import { invoke } from '@tauri-apps/api/tauri';
     import { format_time } from './utils';
     import type { Project } from './types';
+    import { Trash } from 'radix-icons-svelte';
 
     export let name: string;
     export let project: Project;
+
+    function remove_project() {
+        invoke('remove_project', { name });
+    }
 </script>
 
 <div id="container">
-    {#if project.open}
-        <Text color="lime" weight="bold">
-            OPEN
-        </Text>
-    {/if}
+    <span id="name">{project.display_name}</span>
 
-    <Text>{project.display_name}</Text>
-
-    <Text weight="bold">
-        {format_time(project.time.secs)}
-    </Text>
+    {format_time(project.time.secs)}
 
     <div id="fill"></div>
 
-    <Button variant="subtle" color="red" on:click={() => invoke('remove_project', { name: name })}>
-        {project.open ? 'Reset' : 'Remove'}
-    </Button>
+    {#if project.open}
+        <span id="open">
+            OPEN
+        </span>
+    {/if}
+
+    <ActionIcon on:click={() => remove_project()} color="red">
+        <Trash />
+    </ActionIcon>
 </div>
 
 <style>
@@ -37,5 +40,14 @@
 
     #fill {
         flex: 1;
+    }
+
+    #name {
+        font-weight: 500;
+    }
+
+    #open {
+        color: #12b886;
+        font-weight: 500;
     }
 </style>

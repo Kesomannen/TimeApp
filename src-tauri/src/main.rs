@@ -1,7 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use tauri::Manager;
 use unity_dev_timer::*;
-use unity_dev_timer::config::Config;
+use unity_dev_timer::config::Options;
 use unity_dev_timer::handlers::*;
 use unity_dev_timer::persistent::*;
 
@@ -19,7 +20,7 @@ fn main() {
         .with_menu(tray_menu);
 
     let state = AppState::new(
-        Config::new(load_config()),
+        Options::new(load_config()),
         load_projects()
     );
 

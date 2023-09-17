@@ -8,6 +8,6 @@ export type Project = {
 }
 
 export type UpdatePayload = {
-    projects: Project[]
     project_names: string[]
+    projects: Project[]
 }

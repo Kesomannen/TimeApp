@@ -1,6 +1,6 @@
 use std::{thread, time::Duration, sync::Mutex, collections::HashMap, process};
 
-use config::Config;
+use config::Options;
 use persistent::save_projects;
 use serde::{Serialize, Deserialize};
 use tauri::{Manager, AppHandle, SystemTrayEvent, WindowUrl, WindowBuilder};
@@ -22,14 +22,14 @@ pub struct Project {
 }
 
 pub struct AppState {
-    config: Config,
+    options: Options,
     projects: Mutex<HashMap<String, Project>>,
 }
 
 impl AppState {
-    pub fn new(config: Config, projects: HashMap<String, Project>) -> Self {
+    pub fn new(options: Options, projects: HashMap<String, Project>) -> Self {
         Self {
-            config: config,
+            options,
             projects: Mutex::new(projects),
         }
     }
@@ -55,7 +55,7 @@ pub fn update_loop(app: tauri::AppHandle) {
             project.open = false;
         }
 
-        let engine = state.config.get_key_or("engine", Engine::Unity);
+        let engine = state.options.get_key_or("engine", Engine::Unity);
 
         for project_name in open_projects(engine, &system) {
             let project = projects
@@ -70,7 +70,7 @@ pub fn update_loop(app: tauri::AppHandle) {
             project.open = true;
         }
 
-        if let Err(err) = send_update(&projects, &app) {
+        if let Err(err) = update(&app, &projects) {
             eprintln!("Error sending update: {}", err);
         }
     });
@@ -119,14 +119,22 @@ struct UpdatePayload {
     projects: Vec<Project>
 }
 
-fn send_update(projects: &HashMap<String, Project>, app: &AppHandle) -> tauri::Result<()> {
-    let payload = UpdatePayload {
-        project_names: projects.keys().cloned().collect(),
-        projects: projects.values().cloned().collect(),
+fn update(app: &AppHandle, project_map: &HashMap<String, Project>) -> tauri::Result<()> {
+    let mut project_names = Vec::new();
+    let mut projects = Vec::new();
+
+    for (name, project) in project_map {
+        project_names.push(name.clone());
+        projects.push(project.clone());
+    }    
+
+    let payload = UpdatePayload { 
+        project_names, 
+        projects
     };
 
     app.emit_all("update", payload)?;
-    save_projects(projects);
+    save_projects(&project_map);
 
     Ok(())
 }
