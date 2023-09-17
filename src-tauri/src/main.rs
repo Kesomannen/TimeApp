@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use unity_dev_timer::*;
+use unity_dev_timer::config::Config;
 use unity_dev_timer::handlers::*;
 use unity_dev_timer::persistent::*;
 
@@ -18,7 +19,7 @@ fn main() {
         .with_menu(tray_menu);
 
     let state = AppState::new(
-        load_config(),
+        Config::new(load_config()),
         load_projects()
     );
 

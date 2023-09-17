@@ -23,6 +23,7 @@ winreg = "0.51.0"
 winapi = { version = "0.3.9", features = ["winuser"] }
 directories = "5.0.1"
 rand = "0.8.5"
+auto-launch = "0.5.0"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.

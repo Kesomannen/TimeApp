@@ -1,14 +1,15 @@
 use std::{thread, time::Duration, sync::Mutex, collections::HashMap, process};
 
-use serde::{de::DeserializeOwned, Serialize, Deserialize};
+use config::Config;
+use persistent::save_projects;
+use serde::{Serialize, Deserialize};
 use tauri::{Manager, AppHandle, SystemTrayEvent, WindowUrl, WindowBuilder};
-use sysinfo::{ProcessExt, System, SystemExt, PidExt, Process};
+use sysinfo::{ProcessExt, System, SystemExt, PidExt};
 use winapi::um::winuser::*;
-
-use persistent::{save_projects, save_config};
 
 pub mod handlers;
 pub mod persistent;
+pub mod config;
 
 const UPDATE_INTERVAL: Duration = Duration::from_secs(1);
 const PRODUCT_NAME: &str = "UnityDevTimer";
@@ -20,46 +21,17 @@ pub struct Project {
     open: bool,
 }
 
-#[derive(Default)]
 pub struct AppState {
-    config: Mutex<HashMap<String, String>>,
+    config: Config,
     projects: Mutex<HashMap<String, Project>>,
 }
 
 impl AppState {
-    pub fn new(config: HashMap<String, String>, projects: HashMap<String, Project>) -> Self {
+    pub fn new(config: Config, projects: HashMap<String, Project>) -> Self {
         Self {
-            config: Mutex::new(config),
+            config: config,
             projects: Mutex::new(projects),
         }
-    }
-
-    fn get_raw_key(&self, key: &str) -> Option<String> {
-        self.config.lock().unwrap().get(key).cloned()
-    } 
-
-    fn get_key_or<T>(&self, key: &str, default: T) -> T where T: Serialize + DeserializeOwned + Clone {
-        let mut map = self.config.lock().unwrap();
-
-        match map.get(key) {
-            Some(val) => ron::from_str(&val).unwrap(),
-            None => {
-                let val = ron::to_string(&default).unwrap();
-                map.insert(key.to_string(), val.clone());
-                save_config(&map);
-                default
-            }
-        }
-    }
-
-    fn set_raw_key(&self, key: String, value: String) {
-        let mut map = self.config.lock().unwrap();
-        map.insert(key, value);
-        save_config(&map);
-    }
-
-    fn set_key<T>(&self, key: String, value: T) where T: Serialize + DeserializeOwned {
-        self.set_raw_key(key, ron::to_string(&value).unwrap());
     }
 }
 
@@ -83,7 +55,7 @@ pub fn update_loop(app: tauri::AppHandle) {
             project.open = false;
         }
 
-        let engine = state.get_key_or("engine", Engine::Unity);
+        let engine = state.config.get_key_or("engine", Engine::Unity);
 
         for project_name in open_projects(engine, &system) {
             let project = projects

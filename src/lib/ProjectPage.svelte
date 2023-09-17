@@ -32,7 +32,7 @@
 
 {#if loaded}
     {#if projects.length === 0}
-        No projects yet, open one in Unity to get started!
+        No projects yet, open one to get started!
     {/if}
     
     <div class="project-list">
@@ -57,7 +57,7 @@
     }
 
     .total {
-        font-size: 90%;
+        font-size: 1rem;
     }
 
     * {

@@ -37,12 +37,12 @@ fn read_from<T>(path: PathBuf) -> Result<T> where T: Default + DeserializeOwned 
     })
 }
 
-fn write_to<T>(path: PathBuf, map: &T) -> Result<()> where T: serde::Serialize {
+fn write_to<T>(path: PathBuf, value: &T) -> Result<()> where T: serde::Serialize {
     if !path.exists() {
         fs::create_dir_all(path.parent().unwrap()).map_err(Error::Io)?;
     }
 
-    let contents = ron::to_string(map).map_err(Error::Ron)?;
+    let contents = ron::to_string(value).map_err(Error::Ron)?;
     fs::write(path, contents).map_err(Error::Io)?;
 
     Ok(())

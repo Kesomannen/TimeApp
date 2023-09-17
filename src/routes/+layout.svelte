@@ -1,5 +1,5 @@
 <script>
-	import { SvelteUIProvider, AppShell } from '@svelteuidev/core';
+	import { SvelteUIProvider } from '@svelteuidev/core';
 </script>
 
 <SvelteUIProvider themeObserver="dark" withNormalizeCSS withGlobalStyles>
@@ -8,7 +8,7 @@
 
 <style>
     :global(html) {
-        padding: 2rem;
+        padding: 1.5rem;
     }
 
     :global(body) {
