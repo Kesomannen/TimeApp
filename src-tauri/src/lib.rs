@@ -1,10 +1,11 @@
 use std::{thread, time::Duration, sync::Mutex, collections::HashMap, process};
 
+use serde::{de::DeserializeOwned, Serialize, Deserialize};
 use tauri::{Manager, AppHandle, SystemTrayEvent, WindowUrl, WindowBuilder};
-use sysinfo::{ProcessExt, System, SystemExt, PidExt};
+use sysinfo::{ProcessExt, System, SystemExt, PidExt, Process};
 use winapi::um::winuser::*;
 
-use persistent::save_projects;
+use persistent::{save_projects, save_config};
 
 pub mod handlers;
 pub mod persistent;
@@ -21,15 +22,51 @@ pub struct Project {
 
 #[derive(Default)]
 pub struct AppState {
+    config: Mutex<HashMap<String, String>>,
     projects: Mutex<HashMap<String, Project>>,
 }
 
 impl AppState {
-    pub fn new(projects: HashMap<String, Project>) -> Self {
+    pub fn new(config: HashMap<String, String>, projects: HashMap<String, Project>) -> Self {
         Self {
+            config: Mutex::new(config),
             projects: Mutex::new(projects),
         }
     }
+
+    fn get_raw_key(&self, key: &str) -> Option<String> {
+        self.config.lock().unwrap().get(key).cloned()
+    } 
+
+    fn get_key_or<T>(&self, key: &str, default: T) -> T where T: Serialize + DeserializeOwned + Clone {
+        let mut map = self.config.lock().unwrap();
+
+        match map.get(key) {
+            Some(val) => ron::from_str(&val).unwrap(),
+            None => {
+                let val = ron::to_string(&default).unwrap();
+                map.insert(key.to_string(), val.clone());
+                save_config(&map);
+                default
+            }
+        }
+    }
+
+    fn set_raw_key(&self, key: String, value: String) {
+        let mut map = self.config.lock().unwrap();
+        map.insert(key, value);
+        save_config(&map);
+    }
+
+    fn set_key<T>(&self, key: String, value: T) where T: Serialize + DeserializeOwned {
+        self.set_raw_key(key, ron::to_string(&value).unwrap());
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, Copy)]
+enum Engine {
+    Unity,
+    Godot,
 }
 
 pub fn update_loop(app: tauri::AppHandle) {
@@ -46,37 +83,62 @@ pub fn update_loop(app: tauri::AppHandle) {
             project.open = false;
         }
 
-        for process in system.processes_by_exact_name("Unity.exe") {
-            let open_project_names = get_process_windows(process.pid().as_u32()).into_iter()
-                .filter(|title| title.contains("- Unity"))
-                .map(|title| {
-                    let segments: Vec<&str> = title.split("-").collect();
+        let engine = state.get_key_or("engine", Engine::Unity);
 
-                    if segments.len() == 4 {
-                        return segments[0].trim().to_string();
-                    }
-
-                    segments[..segments.len() - 3].join("-").trim().to_string()
+        for project_name in open_projects(engine, &system) {
+            let project = projects
+                .entry(project_name.clone())
+                .or_insert_with(|| Project { 
+                    display_name: format_project_name(&project_name), 
+                    time: Duration::from_secs(0),
+                    open: true,
                 });
 
-            for project_name in open_project_names {
-                let project = projects
-                    .entry(project_name.clone())
-                    .or_insert_with(|| Project { 
-                        display_name: format_project_name(&project_name), 
-                        time: Duration::from_secs(0),
-                        open: true,
-                    });
-
-                project.time += UPDATE_INTERVAL;
-                project.open = true;
-            }
+            project.time += UPDATE_INTERVAL;
+            project.open = true;
         }
 
         if let Err(err) = send_update(&projects, &app) {
             eprintln!("Error sending update: {}", err);
         }
     });
+}
+
+fn open_projects(engine: Engine, system: &System) -> Vec<String> {
+    let (name, identifier) = match engine {
+        Engine::Unity => ("Unity.exe", "- Unity"),
+        Engine::Godot => ("Godot", "- Godot Engine"),
+    };
+
+    let map = match engine {
+        Engine::Unity => |title: String| {
+            let segments: Vec<&str> = title.split("-").collect();
+            if segments.len() == 4 {
+                return segments[0].trim().to_string();
+            }
+            segments[..segments.len() - 3].join("-").trim().to_string()
+        },
+        Engine::Godot => |title: String| {
+            let segments: Vec<&str> = title.split("-").collect();
+            if segments.len() == 3 {
+                return segments[1].trim().to_string();
+            }
+            segments[1..segments.len() - 1].join("-").trim().to_string()
+        },
+    };
+
+    let processes = system.processes_by_name(name);
+    let mut projects = Vec::new();
+
+    for process in processes {
+        process_windows(process.pid().as_u32())
+            .into_iter()
+            .filter(|title| title.contains(identifier))
+            .map(map)
+            .for_each(|title| projects.push(title));
+    }
+
+    projects
 }
 
 #[derive(serde::Serialize, Clone, Default)]
@@ -135,7 +197,7 @@ fn toggle_window(app: &AppHandle) -> tauri::Result<bool> {
     }
 }
 
-fn get_process_windows(process_id: u32) -> Vec<String> {
+fn process_windows(process_id: u32) -> Vec<String> {
     let mut windows = Vec::new();
 
     unsafe {

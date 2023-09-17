@@ -1,32 +1,33 @@
 <script lang="ts">
     import { invoke } from '@tauri-apps/api/tauri';
     import { onMount } from 'svelte';
-    import { Checkbox } from '@svelteuidev/core';
+    import { NativeSelect } from '@svelteuidev/core';
 
-    let auto_start: boolean;
+    type Engine = 'Unity' | 'Godot';
 
-    onMount(() => {
-        invoke<boolean>('get_auto_start')
-            .then((res) => auto_start = res);
+    onMount(async () => {
+        engine = await invoke('get_key', { key: 'engine' });
     });
 
-    $: invoke('set_auto_start', { enabled: auto_start });
+    let engine: Engine;
+
+    $: invoke('set_key', { key: 'engine', value: engine });
 </script>
 
 <div class="setting">
-    Auto Start
-    <Checkbox bind:checked={auto_start} />
+    <div class="label">Engine</div>
+    <NativeSelect 
+        data={['Unity', 'Godot']}
+        placeholder="Select engine"
+        variant="filled"
+        bind:value={engine}
+    />
 </div>
 
 <style>
-    * {
-        margin: 0.5rem 0;
-    }
-
     .setting {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 1rem;
     }
 </style>

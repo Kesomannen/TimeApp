@@ -1,11 +1,11 @@
-use std::io;
+use std::{io, fmt::Debug};
 
-use tauri::AppHandle;
+use tauri::{AppHandle, State, command};
 
-use crate::{*, persistent::*};
+use crate::*;
 
-#[tauri::command]
-pub fn remove_project(name: String, state: tauri::State<'_, AppState>, app: AppHandle) {
+#[command]
+pub fn remove_project(name: String, state: State<'_, AppState>, app: AppHandle) {
     let mut projects = state.projects.lock().unwrap();
     projects.remove(&name);
 
@@ -14,12 +14,13 @@ pub fn remove_project(name: String, state: tauri::State<'_, AppState>, app: AppH
     }
 }
 
-#[tauri::command]
-pub fn set_auto_start(enabled: bool) -> io::Result<()> {
-    set_auto_startup(enabled)
+#[command]
+pub fn get_key(key: String, state: State<'_, AppState>) -> Result<String, ()> {
+    state.get_raw_key(&key).ok_or(())
 }
 
-#[tauri::command]
-pub fn get_auto_start() -> io::Result<bool> {
-    get_auto_startup()
+#[command]
+pub fn set_key(key: String, value: String, state: State<'_, AppState>) {
+    println!("set_key: {} = {:?}", key, value);
+    state.set_raw_key(key, value);
 }

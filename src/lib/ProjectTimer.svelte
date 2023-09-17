@@ -8,7 +8,7 @@
     export let project: Project;
 </script>
 
-<div class="container">
+<div id="container">
     {#if project.open}
         <Text color="lime" weight="bold">
             OPEN
@@ -21,15 +21,21 @@
         {format_time(project.time.secs)}
     </Text>
 
+    <div id="fill"></div>
+
     <Button variant="subtle" color="red" on:click={() => invoke('remove_project', { name: name })}>
         {project.open ? 'Reset' : 'Remove'}
     </Button>
 </div>
 
 <style>
-    .container {
+    #container {
         display: flex;
         align-items: center;
         gap: 1rem;
+    }
+
+    #fill {
+        flex: 1;
     }
 </style>

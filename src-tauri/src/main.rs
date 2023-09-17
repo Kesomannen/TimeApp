@@ -17,12 +17,15 @@ fn main() {
     let tray = SystemTray::new()
         .with_menu(tray_menu);
 
-    let state = AppState::new(load_projects());
+    let state = AppState::new(
+        load_config(),
+        load_projects()
+    );
 
     tauri::Builder::default()
         .system_tray(tray)
         .on_system_tray_event(handle_system_tray_event)
-        .invoke_handler(tauri::generate_handler![remove_project])
+        .invoke_handler(tauri::generate_handler![remove_project, get_key, set_key])
         .manage(state)
         .setup(|app| {
             update_loop(app.handle());
