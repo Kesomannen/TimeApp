@@ -1,6 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use tauri::Manager;
 use unity_dev_timer::*;
 use unity_dev_timer::config::Options;
 use unity_dev_timer::handlers::*;

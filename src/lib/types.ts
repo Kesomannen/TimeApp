@@ -11,3 +11,6 @@ export type UpdatePayload = {
     project_names: string[]
     projects: Project[]
 }
+
+export type Engine = 'Unity' | 'Godot';
+export type Theme = 'Light' | 'Dark';

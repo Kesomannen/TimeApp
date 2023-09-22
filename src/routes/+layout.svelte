@@ -2,7 +2,7 @@
 	import { SvelteUIProvider } from '@svelteuidev/core';
 </script>
 
-<SvelteUIProvider themeObserver="dark" withNormalizeCSS withGlobalStyles>
+<SvelteUIProvider withNormalizeCSS withGlobalStyles>
     <slot />
 </SvelteUIProvider>
 

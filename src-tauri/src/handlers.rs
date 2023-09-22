@@ -19,5 +19,6 @@ pub fn get_key(key: String, state: State<'_, AppState>) -> Result<String, ()> {
 
 #[command]
 pub fn set_key(key: String, value: String, state: State<'_, AppState>) {
+    println!("Setting key {} to {}", key, value);
     state.options.set_raw_key(key, value);
 }

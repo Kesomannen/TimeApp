@@ -20,11 +20,9 @@
 
     <div id="fill"></div>
 
-    {#if project.open}
-        <span id="open">
-            OPEN
-        </span>
-    {/if}
+    <span id="open" class={project.open ? "shown" : "hidden"}>
+        OPEN
+    </span>
 
     <ActionIcon on:click={() => remove_project()} color="red">
         <Trash />
@@ -47,7 +45,28 @@
     }
 
     #open {
-        color: #12b886;
         font-weight: 500;
+    }
+    
+    .shown {
+        opacity: 1;
+        color: #12b886;
+    }
+
+    .hidden {
+        opacity: 0;
+        color: #12b886;
+    }
+
+    .shown, .hidden {
+        transition: opacity 0.33s ease-out;
+    }
+
+    .shown {
+        transition-delay: 0.5s;
+    }
+
+    .hidden {
+        transition-delay: 0s;
     }
 </style>

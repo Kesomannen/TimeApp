@@ -1,6 +1,6 @@
-use std::{collections::HashMap, sync::{Mutex, MutexGuard}};
+use std::{collections::HashMap, sync::{Mutex, MutexGuard}, path::PathBuf};
 
-use crate::{persistent::save_config, PRODUCT_NAME};
+use crate::persistent::save_config;
 
 use auto_launch::AutoLaunch;
 use serde::{de::DeserializeOwned, Serialize};
@@ -12,7 +12,7 @@ pub struct Options {
 
 impl Options {
     pub fn new(map: HashMap<String, String>) -> Self {
-        let path = std::env::current_dir().unwrap();
+        let path = PathBuf::from(r#"C:\Users\bobbo\Documents\time_app\src-tauri\target\debug\UnityDevTimer.exe"#);
         let name = path.file_name().unwrap().to_str().unwrap();
         let path = path.to_str().unwrap();
 
@@ -34,16 +34,18 @@ impl Options {
     
     pub fn get_key_or<T>(&self, key: &str, default: T) -> T where T: Serialize + DeserializeOwned + Clone {
         let mut map = self.get_map();
-    
-        match map.get(key) {
-            Some(val) => ron::from_str(&val).unwrap(),
-            None => {
-                let val = ron::to_string(&default).unwrap();
-                map.insert(key.to_string(), val.clone());
-                save_config(&map);
-                default
+        let value = map.get(key);
+
+        if let Some(val) = value {
+            if let Ok(val) = ron::from_str(&val) {
+                return val;
             }
         }
+
+        let val = ron::to_string(&default).unwrap();
+        map.insert(key.to_string(), val.clone());
+        save_config(&map);
+        default
     }
     
     pub fn set_raw_key(&self, key: String, value: String) {
@@ -61,9 +63,13 @@ impl Options {
         match key {
             "auto_start" => {
                 if value == "true" {
-                    self.auto_launch.enable().unwrap();
+                    self.auto_launch.enable().unwrap_or_else(|err| {
+                        eprintln!("Error enabling auto launch: {}", err);
+                    });
                 } else {
-                    self.auto_launch.disable().unwrap();
+                    self.auto_launch.disable().unwrap_or_else(|err| {
+                        eprintln!("Error disabling auto launch: {}", err);
+                    });
                 }
             },
             _ => { }
